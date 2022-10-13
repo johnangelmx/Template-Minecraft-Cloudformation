@@ -1,0 +1,197 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Stack Creacion De Entorno Para Minecraft",
+  "Parameters": {
+    "AmazonLinuxAMIID": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+    }
+  },
+  "Resources": {
+    "VPCminecraft": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "MincraftVPC"
+          }
+        ]
+      }
+    },
+    "InternetGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "IGWminecraft"
+          }
+        ]
+      }
+    },
+    "VpcToIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "DependsOn": [
+        "VPCminecraft",
+        "InternetGW"
+      ],
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "InternetGW"
+        },
+        "VpcId": {
+          "Ref": "VPCminecraft"
+        }
+      }
+    },
+    "RouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "DependsOn": "VPCminecraft",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPCminecraft"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Route Table for Minecraft"
+          }
+        ]
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": [
+        "RouteTable",
+        "InternetGW"
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGW"
+        },
+        "RouteTableId": {
+          "Ref": "RouteTable"
+        }
+      }
+    },
+    "PublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "DependsOn": "VPCminecraft",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPCminecraft"
+        },
+        "MapPublicIpOnLaunch": true,
+        "CidrBlock": "10.0.1.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": {
+                "Ref": "AWS::Region"
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Subnet 1"
+          }
+        ]
+      }
+    },
+    "PublicRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn": [
+        "RouteTable",
+        "PublicSubnet"
+      ],
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        }
+      }
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "DependsOn": "VPCminecraft",
+      "Properties": {
+        "GroupName": "SecurityForMinecraft",
+        "GroupDescription": "Enable ssh and port for minecraft server",
+        "VpcId": {
+          "Ref": "VPCminecraft"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 25565,
+            "ToPort": 25565,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": -1,
+            "FromPort": -1,
+            "ToPort": -1,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Grupo de Seguridad Para Minecraft"
+          }
+        ]
+      }
+    },
+    "MinecraftServer": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "AmazonLinuxAMIID"
+        },
+        "UserData": "IyEvYmluL2Jhc2gKc2VkICdzL1Bhc3N3b3JkQXV0aGVudGljYXRpb24gbm8vUGFzc3dvcmRBdXRoZW50aWNhdGlvbiB5ZXMvJyAtaSAvZXRjL3NzaC9zc2hkX2NvbmZpZwpzeXN0ZW1jdGwgcmVzdGFydCBzc2hkCnNlcnZpY2Ugc3NoZCByZXN0YXJ0CiNUT0RPOiByZXBsYWNlIGJvYiB3aXRoIHlvdXIgZGVzaXJlZCB1c2VybmFtZXVzZXJhZGQgZWMyLXVzZXIKIyBUT0RPOiByZXBsYWNlIHBhc3N3b3JkMTIzIHdpdGggZGVzaXJlZCBwYXNzd29yZCBhbmQgY2hhbmdlIGJvYiB0byB5b3VyIHVzZXJuYW1lIGNob3NlbiBpbiB1c2VyYWRkIAplY2hvICJEamd1em1hbjMyMSEiIHwgcGFzc3dkIC0tc3RkaW4gZWMyLXVzZXIK",
+        "InstanceType": "t2.micro",
+        "SecurityGroupIds": [{
+          "Ref": "SecurityGroup"
+        }],
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Servidor Principal  "
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MinecraftServer",
+          "PublicIp"
+        ]
+      },
+      "Description": "Server's PublicIp Address"
+    }
+  }
+}
