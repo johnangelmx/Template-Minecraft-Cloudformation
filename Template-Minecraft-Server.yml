@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: |
+  Creacion de pila para entorno de
+  ejecucion de un servidor del juego
+  minecraft.
+
+Parameters:
+  AmazonLinuxAMIID:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+Resources:
+  VPCminecraft:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: "Name"
+          Value: "MinecraftVPC"
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: "IGWforMinecraft"
+  IGWattachVPC:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn:
+      - VPCminecraft
+      - InternetGateway
+    Properties:
+      VpcId: !Ref VPCminecraft
+      InternetGatewayId: !Ref InternetGateway
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: IGWattachVPC
+    Properties:
+      VpcId: !Ref VPCminecraft
+      Tags:
+        - Key: "Name"
+          Value: "Public Route Table For Minecraft"
+  PublicRouteTable:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - RouteTable
+      - IGWattachVPC
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref RouteTable
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn: PublicRouteTable
+    Properties:
+      VpcId: !Ref VPCminecraft
+      MapPublicIpOnLaunch: true
+      CidrBlock: "10.0.1.0/24"
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ""
+      Tags:
+        - Key: "Name"
+          Value: "Public Subnet 1"
+  #Public subnet attach to Route table
+  PSattachRT:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PublicSubnet
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref PublicSubnet
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: PSattachRT
+    Properties:
+      GroupName: "SGforMinecraft"
+      GroupDescription: "Enable ssh and port for minecraft server"
+      VpcId: !Ref VPCminecraft
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 25565
+          ToPort: 25565
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: "Name"
+          Value: "Grupo de seguridad para ssh y el puerto predeterminado de minecraft server edition"
+  MinecraftServer:
+    Type: AWS::EC2::Instance
+    DependsOn: SecurityGroup
+    Properties:
+      ImageId: !Ref AmazonLinuxAMIID
+      UserData: "IyEvYmluL2Jhc2gKc2VkICdzL1Bhc3N3b3JkQXV0aGVudGljYXRpb24gbm8vUGFzc3dvcmRBdXRoZW50aWNhdGlvbiB5ZXMvJyAtaSAvZXRjL3NzaC9zc2hkX2NvbmZpZwpzeXN0ZW1jdGwgcmVzdGFydCBzc2hkCnNlcnZpY2Ugc3NoZCByZXN0YXJ0CiNUT0RPOiByZXBsYWNlIGJvYiB3aXRoIHlvdXIgZGVzaXJlZCB1c2VybmFtZXVzZXJhZGQgZWMyLXVzZXIKIyBUT0RPOiByZXBsYWNlIHBhc3N3b3JkMTIzIHdpdGggZGVzaXJlZCBwYXNzd29yZCBhbmQgY2hhbmdlIGJvYiB0byB5b3VyIHVzZXJuYW1lIGNob3NlbiBpbiB1c2VyYWRkIAplY2hvICJEamd1em1hbjMyMSEiIHwgcGFzc3dkIC0tc3RkaW4gZWMyLXVzZXIK"
+      InstanceType: "t2.micro"
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: "Name"
+          Value: "Servidor Minecraft"
+Outputs:
+  PublicIp:
+    Description: Server Public IP
+    Value: !GetAtt MinecraftServer.PublicIp
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicIp"
+
