@@ -99,7 +99,7 @@ Resources:
     DependsOn: SecurityGroup
     Properties:
       ImageId: !Ref AmazonLinuxAMIID
-      UserData: "IyEvYmluL2Jhc2gKc2VkICdzL1Bhc3N3b3JkQXV0aGVudGljYXRpb24gbm8vUGFzc3dvcmRBdXRoZW50aWNhdGlvbiB5ZXMvJyAtaSAvZXRjL3NzaC9zc2hkX2NvbmZpZwpzeXN0ZW1jdGwgcmVzdGFydCBzc2hkCnNlcnZpY2Ugc3NoZCByZXN0YXJ0CiNUT0RPOiByZXBsYWNlIGJvYiB3aXRoIHlvdXIgZGVzaXJlZCB1c2VybmFtZXVzZXJhZGQgZWMyLXVzZXIKIyBUT0RPOiByZXBsYWNlIHBhc3N3b3JkMTIzIHdpdGggZGVzaXJlZCBwYXNzd29yZCBhbmQgY2hhbmdlIGJvYiB0byB5b3VyIHVzZXJuYW1lIGNob3NlbiBpbiB1c2VyYWRkIAplY2hvICJEamd1em1hbjMyMSEiIHwgcGFzc3dkIC0tc3RkaW4gZWMyLXVzZXIK"
+      UserData: "IyEvYmluL2Jhc2gKc2VkICdzL1Bhc3N3b3JkQXV0aGVudGljYXRpb24gbm8vUGFzc3dvcmRBdXRoZW50aWNhdGlvbiB5ZXMvJyAtaSAvZXRjL3NzaC9zc2hkX2NvbmZpZwpzeXN0ZW1jdGwgcmVzdGFydCBzc2hkCnNlcnZpY2Ugc3NoZCByZXN0YXJ0CiNUT0RPOiByZXBsYWNlIGJvYiB3aXRoIHlvdXIgZGVzaXJlZCB1c2VybmFtZXVzZXJhZGQgZWMyLXVzZXIKIyBUT0RPOiByZXBsYWNlIHBhc3N3b3JkMTIzIHdpdGggZGVzaXJlZCBwYXNzd29yZCBhbmQgY2hhbmdlIGJvYiB0byB5b3VyIHVzZXJuYW1lIGNob3NlbiBpbiB1c2VyYWRkCmVjaG8gInBhc3MxMjM0IiB8IHBhc3N3ZCAtLXN0ZGluIGVjMi11c2VyCg=="
       InstanceType: "t2.micro"
       SecurityGroupIds:
         - !Ref SecurityGroup
@@ -113,4 +113,3 @@ Outputs:
     Value: !GetAtt MinecraftServer.PublicIp
     Export:
       Name: !Sub "${AWS::StackName}-PublicIp"
-

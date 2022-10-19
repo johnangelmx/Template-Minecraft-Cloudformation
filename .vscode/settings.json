@@ -1,0 +1,5 @@
+{
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/awslabs/goformation/master/schema/cloudformation.schema.json": "file:///home/angel/Template-Minecraft-Cloudformation/Template-Minecraft-Server.yml"
+    }
+}
